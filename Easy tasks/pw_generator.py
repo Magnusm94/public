@@ -1,14 +1,16 @@
-import random
-
-# Super simple password generator
-
-characters = "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$^&*"
-
-length = input("How many characters do you want your password to be? ")
-length = int(length)
-password = ''
+import string
+from random import randint
 
 
-for c in range(length):
-    password += characters[random.randint(0, len(characters))]
-print(password)
+# Simple password generator
+def makepassword(length):
+    letters = string.printable
+    password = ''
+    for i in range(length):
+        temp = randint(0, len(letters) - 1)
+        password += letters[temp]
+
+    return password
+
+
+print(makepassword(20))
