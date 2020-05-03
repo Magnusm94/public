@@ -53,6 +53,7 @@ class postgresql:
             self.conn.commit()
             print('Table created successfully')
             self.attempts = 0
+            self.conn.close()
         except:
             if self.attempts > 2:
                 self.attempts = 0
