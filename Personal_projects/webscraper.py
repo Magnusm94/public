@@ -2,7 +2,7 @@ import requests
 from lxml import html
 import pandas as pd
 import threading
-from queue import Queue
+from queue import Queue  # 
 
 
 # This project is in process.
@@ -16,6 +16,7 @@ class scraper:
         self.url = None
         self.page = None
         self.links = []
+        self.base_url = None
         self.tree = None
         self.counter = 0
         self.grab = False
@@ -40,25 +41,25 @@ class scraper:
             self.grab = True
         else:
             self.grab = False
-        self.__update__()
+        self.update()
 
-    def __update__(self):
+    def update(self):
         try:
             self.page = requests.get(self.url, timeout=5)
             self.tree = html.fromstring(self.page.content)
-            self.__hrefs__()
-            # self.__base_link__()
+            self.hrefs()
+            # self.base_link()
             self.checked.append(self.url)
         except:
             pass
 
-    def __base_link__(self):
+    def base_link(self):
         try:
             self.base_url = (str(self.url).split('//')[1]).split('/')[0]
         except:
             pass
 
-    def __hrefs__(self):
+    def hrefs(self):
         try:
             for href in self.tree.iterlinks():
                 if 'http' in href[2]:
@@ -79,7 +80,7 @@ class scraper:
         except:
             pass
 
-    def __tables__(self):
+    def set_tables(self):
         try:
             self.tables = pd.read_html(self.page.content)
         except:
@@ -96,7 +97,9 @@ class scraper:
         else:
             self.other[key] = [value]
 
-    def __threadscraping__(self):
+    def threadscraping(self):
+        # Not finished.
+        # todo: finish this funciton
         while True:
             try:
                 self.__call__(url=self.url)
@@ -104,7 +107,7 @@ class scraper:
             except:
                 break
 
-    def __crawl__(self):
+    def crawl(self):
         counter = 0
         while True:
             stats = {
@@ -116,7 +119,7 @@ class scraper:
                 if not self.queue.full():
                     try:
                         self.url = self.other['links'][counter]
-                        t = threading.Thread(target=self.__threadscraping__())
+                        t = threading.Thread(target=self.threadscraping())
                         self.queue.put(t)
                         self.threads.append(t)
                         print(stats)

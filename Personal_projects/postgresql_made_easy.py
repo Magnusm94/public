@@ -24,11 +24,10 @@ class postgresql:
                 password=self.db_pass, host=self.db_host,
                 port=self.db_port)
             print('Connection established')
+            self.cur = self.conn.cursor()
         except psycopg2.OperationalError:
             print('Connection failed')
-        self.cur = self.conn.cursor()
 
-    # Tries to commit a command to the database, and closes connection.
     def commit(self, command, fetch=False):
         worked = None
         self.connect()
@@ -47,7 +46,29 @@ class postgresql:
 
     # Attempts to create a new table: tablename
     # Kwargs is used for. For example age='int'
-    def maketable(self, tablename, **kwargs):
+    # NULL is accepted for all values.
+    def maketable_null_accepted(self, tablename, **kwargs):
+        # The first part is writing the SQL code required to create a table from kwargs info.
+        strings = []
+        tablestr = 'CREATE TABLE %s\n(\nID SERIAL,\n' % tablename
+        for x, z in kwargs.items():
+            strings.append('%s %s,\n' % (str(x).upper(), str(z).upper()))
+        strings[-1] = strings[-1].replace(',', '')
+        last_part = ')'
+        command = tablestr
+        for item in strings:
+            command += item
+        command += last_part
+        try:
+            if self.commit(command):
+                print('Table created successfully.')
+            else:
+                print('Failed to create table.')
+        except:
+            print('Table already exists')
+
+    # Same as previous, but does not accept null.
+    def maketable_no_null(self, tablename, **kwargs):
         # The first part is writing the SQL code required to create a table from kwargs info.
         strings = []
         tablestr = 'CREATE TABLE %s\n(\nID SERIAL,\n' % tablename
@@ -67,8 +88,6 @@ class postgresql:
         except:
             print('Table already exists')
 
-    # Inserts a value into given table in the database.
-    # Kwargs is used for the values. For example name='your name'
     def insert(self, tablename, **kwargs):
         items = []
         values = []
@@ -87,9 +106,6 @@ class postgresql:
         else:
             print('Failed to insert data.')
 
-    # Grabs and returns data from the given table.
-    # Args is what information you want to return.
-    # todo: Make function to grab entire table
     def select(self, tablename, *args):
         command = 'SELECT '
         for arg in args[:-1]:
@@ -101,15 +117,10 @@ class postgresql:
         else:
             print('Failed to obtain data.')
 
-    # Returns a dataframe of the table.
-    # Args is information you want in the dataframe.
-    # todo: Make function to grab entire table
     def dataframe(self, tablename, *args):
         df = pd.DataFrame(self.select(tablename, *args))
         return df
 
-    # Updates The info in the table, based on ID. ID is given as string: 'ID = 10' or 'name = "some name"'
-    # Kwargs is used for setting new value. For example: email='new_email@domain.com'
     def update(self, tablename, ID, **kwargs):
         items = []
         for x, z in kwargs.items():
@@ -123,8 +134,6 @@ class postgresql:
         else:
             print('Failed to update table')
 
-    # Deletes info from table at ID = given info.
-    # For example 'name = "some name"' deletes all "some name" values from table
     def delete(self, tablename, ID):
         command = 'DELETE FROM %s WHERE %s' % (tablename, ID)
         if self.commit(command):
@@ -133,23 +142,27 @@ class postgresql:
             print('Failed to delete.')
 
 
-# example of how to call this function so far.
-a = postgresql()  # Initialize the class.
+""""
+Example of how to call this function so far.
 
-# Make a new table. Note that ID is set to serial.
+Initialize class
+a = postgresql()
+
+Make a new table. Note that ID is set to serial.
 a.maketable('complete', v1='int', v2='float', v3='text')
 
-# Insert into a table
+Insert into a table
 a.insert('complete', v1=1000, v2=13.37, v3='some text')
 
-# Select data from given table
+Select data from given table
 print(a.select('complete', 'v1', 'v2', 'v3'))
 
-# Get dataframe of table
+Get dataframe of table
 print(a.dataframe('complete', 'v1', 'v2', 'v3'))
 
-# Update table info
+Update table info
 a.update('complete', 'v1 = 2000', v2=1.5, v3='other text')
 
-# Delete table info
+Delete table info
 a.delete('complete', 'v1=2000')
+"""
