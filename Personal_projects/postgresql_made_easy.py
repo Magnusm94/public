@@ -23,7 +23,6 @@ class postgresql:
                 database=self.db_name, user=self.sb_user,
                 password=self.db_pass, host=self.db_host,
                 port=self.db_port)
-            print('Connection established')
             self.cur = self.conn.cursor()
         except psycopg2.OperationalError:
             print('Connection failed')
@@ -53,19 +52,20 @@ class postgresql:
         tablestr = 'CREATE TABLE %s\n(\nID SERIAL,\n' % tablename
         for x, z in kwargs.items():
             strings.append('%s %s,\n' % (str(x).upper(), str(z).upper()))
-        strings[-1] = strings[-1].replace(',', '')
-        last_part = ')'
+        #        strings[-1] = strings[-1].replace(',', '')
         command = tablestr
         for item in strings:
             command += item
-        command += last_part
+        command += 'added timestamp default current_timestamp,' \
+                   'updated timestamp default current_timestamp\n)'
+        print(command)
         try:
             if self.commit(command):
                 print('Table created successfully.')
             else:
                 print('Failed to create table.')
         except:
-            print('Table already exists')
+            print('Error')
 
     # Same as previous, but does not accept null.
     def maketable_no_null(self, tablename, **kwargs):
@@ -102,9 +102,7 @@ class postgresql:
         items = '(%s)' % items
         command = 'INSERT INTO %s %s VALUES %s' % (tablename, items, values)
         if self.commit(command):
-            print('Data inserted successfully')
-        else:
-            print('Failed to insert data.')
+            return True
 
     def select(self, tablename, *args):
         command = 'SELECT '
@@ -112,7 +110,6 @@ class postgresql:
             command += str(arg).upper() + ', '
         command += str(args[-1]).upper() + ' FROM %s' % str(tablename).upper()
         if self.commit(command, fetch=True):
-            print('Successfully grabbed data.')
             return self.data
         else:
             print('Failed to obtain data.')
@@ -129,17 +126,25 @@ class postgresql:
         items = "".join(items)
         command = 'UPDATE %s set %s WHERE %s' % (tablename, items, ID)
 
-        if self.commit(command):
-            print('Successfully updated table')
-        else:
+        if not self.commit(command):
             print('Failed to update table')
 
     def delete(self, tablename, ID):
         command = 'DELETE FROM %s WHERE %s' % (tablename, ID)
-        if self.commit(command):
-            print('Deleted successfully.')
-        else:
+        if not self.commit(command):
             print('Failed to delete.')
+
+    def update_encrypted(self, tablename, ID, **kwargs):
+        update = []
+        for x, z in kwargs.items():
+            update.append("%s = crypt('%s', gen_salt('bf')), " % (x, z))
+        update[-1] = update[-1][:-2]
+        update = "".join(update)
+        command = "UPDATE %s SET %s WHERE %s" % (tablename, update, ID)
+        if self.commit(command):
+            return True
+        else:
+            return False
 
 
 """"
